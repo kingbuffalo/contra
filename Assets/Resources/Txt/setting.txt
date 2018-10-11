@@ -1,0 +1,16 @@
+Player0Up:W
+Player0Down:S
+Player0Left:A
+Player0Right:D
+Player0Jump:K
+Player0Shoot:J
+Player1Up:Keypad8
+Player1Down:Keypad5
+Player1Left:Keypad4
+Player1Right:Keypad6
+Player1Jump:Keypad0
+Player1Shoot:KeypadPeriod
+LifeCount:3
+DefaultWeapon:1
+PrefabPath:Prefab
+SpritePath:Sprite
