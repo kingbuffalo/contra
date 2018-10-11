@@ -1,10 +1,11 @@
-﻿using System;
+﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 //获取资源时传入的委托
-public delegate void DelegateGetPrefabResources<T>(T xx) where T : UnityEngine.Object;
+public delegate void DelegateGetPrefabResources<T>(T asste,string name) where T : UnityEngine.Object;
 
 public class ResourcesManager : MonoBehaviour
 {
@@ -22,6 +23,12 @@ public class ResourcesManager : MonoBehaviour
         }
     }
 
+    private enum ResourceType
+    {
+        Instantiate,
+        Source,
+    }
+
     // 资源对象
     private struct ResourceObject<T> where T : UnityEngine.Object
     {
@@ -31,6 +38,7 @@ public class ResourcesManager : MonoBehaviour
         public bool isDone;
         public T source;
         public Stack<T> idleInstantiates;
+        public ResourceType resourceType;
 
         public ResourceObject(string name)
         {
@@ -40,6 +48,7 @@ public class ResourcesManager : MonoBehaviour
             isDone = false;
             source = null;
             idleInstantiates = new Stack<T>();
+            resourceType = ResourceType.Instantiate;
         }
 
         public void AddCallBack(DelegateGetPrefabResources<T> callback)
@@ -52,12 +61,16 @@ public class ResourcesManager : MonoBehaviour
             while(events.Count > 0)
             {
                 DelegateGetPrefabResources<T> callback = events.Pop();
-                callback(PopObject());
+                callback(PopObject(),name);
             }
         }
 
         public T PopObject()
         {
+            if (resourceType == ResourceType.Source)
+            {
+                return source;
+            }
             T result = null;
             if (idleInstantiates.Count > 0)
             {
@@ -72,7 +85,10 @@ public class ResourcesManager : MonoBehaviour
 
         public void PushObject(T obj)
         {
-            idleInstantiates.Push(obj);
+            if (resourceType == ResourceType.Instantiate)
+            {
+                idleInstantiates.Push(obj);
+            }
         }
 
         public void Clear()
@@ -105,7 +121,7 @@ public class ResourcesManager : MonoBehaviour
             }
             if (resourceObject.isDone)
             {
-                callback(resourceObject.source);
+                callback(resourceObject.source, resourceObject.name);
             }
             else
             {
@@ -139,13 +155,41 @@ public class ResourcesManager : MonoBehaviour
 
     private IEnumerator AsyncLoadPrefab<T>(string name, ResourceObject<T> resourceObject) where T : UnityEngine.Object
     {
-        string path = "Prefab/" + name;
-        ResourceRequest r = Resources.LoadAsync(path);
+        Type type = typeof(T);
+        string path;
+        ResourceType resourceTyp;
+        GetResourcePathAndType(type, name, out path, out resourceTyp);
+        resourceObject.resourceType = resourceTyp;
+        ResourceRequest r = Resources.LoadAsync<T>(path);
         while (!r.isDone)
         {
             yield return null;
         }
-        resourceObject.source = r.asset as T;
-        resourceObject.FireCallBack();
+        if((r!=null)&&(r.asset!=null))
+        {
+            resourceObject.source = r.asset as T;
+            resourceObject.FireCallBack();
+        }
     }
+
+    private void GetResourcePathAndType(Type type,string name,out string path,out ResourceType resourceType)
+    {
+        if (type == typeof(GameObject))
+        {
+            path = "Prefab/" + name;
+            resourceType = ResourceType.Instantiate;
+        }
+        else if (type == typeof(Sprite))
+        {
+            path = "Sprite/" + name;
+            resourceType = ResourceType.Source;
+        }
+        else
+        {
+            path = "Prefab/" + name;
+            resourceType = ResourceType.Instantiate;
+        }
+    }
+
+
 }
