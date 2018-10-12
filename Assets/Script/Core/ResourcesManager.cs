@@ -10,17 +10,22 @@ public delegate void DelegateGetPrefabResources<T>(T asste,string name) where T 
 public class ResourcesManager : MonoBehaviour
 {
     //单例模式 资源管理
-    public static ResourcesManager gResourcesManagerInstantiate;
+    public static ResourcesManager Instance;
     private void Awake()
     {
-        if (gResourcesManagerInstantiate == null)
+        if (Instance == null)
         {
-            gResourcesManagerInstantiate = this;
+            Instance = this;
         }
         else
         {
-            Debug.LogError("重复实例资源管理类");
+            Debug.LogError("ResourcesManager instance already exists");
         }
+    }
+
+    private void OnDestroy()
+    {
+        Instance = null;
     }
 
     private enum ResourceType
@@ -58,10 +63,11 @@ public class ResourcesManager : MonoBehaviour
 
         public void FireCallBack()
         {
-            while(events.Count > 0)
+            while (events.Count > 0)
             {
                 DelegateGetPrefabResources<T> callback = events.Pop();
-                callback(PopObject(),name);
+                T obj = PopObject();
+                callback(obj, name);
             }
         }
 
@@ -80,6 +86,11 @@ public class ResourcesManager : MonoBehaviour
             {
                 result = Instantiate<T>(source);
             }
+            if (typeof(T) == typeof(GameObject))
+            {
+                GameObject go = result as GameObject;
+                go.SetActive(true);
+            }
             return result;
         }
 
@@ -88,6 +99,13 @@ public class ResourcesManager : MonoBehaviour
             if (resourceType == ResourceType.Instantiate)
             {
                 idleInstantiates.Push(obj);
+                if (typeof(T) == typeof(GameObject))
+                {
+                    GameObject go = obj as GameObject;
+                    go.SetActive(false);
+                    Transform tf = go.transform;
+                    tf.SetParent(null);
+                }
             }
         }
 
@@ -103,52 +121,78 @@ public class ResourcesManager : MonoBehaviour
 
     private class ResourceFactory<T> where T : UnityEngine.Object
     {
-        public ResourceFactory()
-        {
-
-        }
 
         private Dictionary<string, ResourceObject<T>> gameObjectResources = new Dictionary<string, ResourceObject<T>>();
-        public void GetResource(string name, DelegateGetPrefabResources<T> callback)
+        public void PopResource(string name, DelegateGetPrefabResources<T> callback)
         {
             ResourceObject<T> resourceObject;
             if (!gameObjectResources.TryGetValue(name, out resourceObject))
             {
                 resourceObject = new ResourceObject<T>(name);
                 gameObjectResources.Add(name, resourceObject);
-                IEnumerator fun = gResourcesManagerInstantiate.AsyncLoadPrefab<T>(name, resourceObject);
-                gResourcesManagerInstantiate.StartCoroutine(fun);
+                IEnumerator fun = Instance.AsyncLoadPrefab<T>(name, resourceObject);
+                Instance.StartCoroutine(fun);
             }
-            if (resourceObject.isDone)
+           
+            if (callback != null)
             {
-                callback(resourceObject.source, resourceObject.name);
+                resourceObject.AddCallBack(callback);
+                if (resourceObject.isDone)
+                {
+                    resourceObject.FireCallBack();
+                }
+            }
+        }
+
+        public void PushResource(string name, T obj)
+        {
+            ResourceObject<T> resourceObject;
+            if (gameObjectResources.TryGetValue(name, out resourceObject))
+            {
+                resourceObject.PushObject(obj);
             }
             else
             {
-                resourceObject.AddCallBack(callback);
+                Destroy(obj);
             }
         }
     }
 
-    private Dictionary<Type, ResourceFactory<UnityEngine.Object>> resourceFactory = new Dictionary<Type, ResourceFactory<UnityEngine.Object>>();
-    public void GetResource<T>(string name, DelegateGetPrefabResources<T> callback) where T : UnityEngine.Object
+    private Dictionary<Type, System.Object> resourceFactory = new Dictionary<Type, System.Object>();
+    public void PopResource<T>(string name, DelegateGetPrefabResources<T> callback) where T : UnityEngine.Object
     {
         Type type = typeof(T);
         ResourceFactory<T> factory;
-        ResourceFactory<UnityEngine.Object> getValue;
-        if (resourceFactory.TryGetValue(type,out getValue))
+        System.Object getValue;
+        if (resourceFactory.TryGetValue(type, out getValue))
         {
             factory = getValue as ResourceFactory<T>;
         }
         else
         {
             factory = new ResourceFactory<T>();
-            getValue = factory as ResourceFactory<UnityEngine.Object>;
+            getValue = factory as System.Object;
             resourceFactory.Add(type, getValue);
         }
         if (factory != null)
         {
-            factory.GetResource(name, callback);
+            factory.PopResource(name, callback);
+        }
+    }
+
+    public void PushResource<T>(string name,T obj) where T : UnityEngine.Object
+    {
+        Type type = typeof(T);
+        ResourceFactory<T> factory;
+        System.Object getValue;
+        if (resourceFactory.TryGetValue(type, out getValue))
+        {
+            factory = getValue as ResourceFactory<T>;
+            factory.PushResource(name, obj);
+        }
+        else
+        {
+            Destroy(obj);
         }
     }
 

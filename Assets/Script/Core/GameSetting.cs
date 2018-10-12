@@ -6,8 +6,9 @@ using UnityEngine;
 
 public static class GameSetting
 {
-    private static Dictionary<string, string> SettingInfo = new Dictionary<string, string>();
+    public static int playerCount { get; set; }
 
+    private static Dictionary<string, string> SettingInfo = new Dictionary<string, string>();
     public static void SetSetting(string setting)
     {
         string[] info = setting.Split(Environment.NewLine.ToCharArray());
