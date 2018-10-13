@@ -9,7 +9,7 @@ public enum SceneMode
 
 public enum SceneName
 {
-    logic,
+    login,
     level1,
     level2,
     level3,

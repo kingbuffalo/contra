@@ -85,8 +85,9 @@
     <Compile Include="Assets\Script\Core\ResourcesManager.cs" />
     <Compile Include="Assets\Script\Player\BasePlayer.cs" />
     <Compile Include="Assets\Script\Scene\BaseScene.cs" />
+    <Compile Include="Assets\Script\Scene\BattleScene.cs" />
     <Compile Include="Assets\Script\Scene\BloodScene.cs" />
-    <Compile Include="Assets\Script\Scene\LogicScene.cs" />
+    <Compile Include="Assets\Script\Scene\LoginScene.cs" />
     <Compile Include="Assets\Script\Scene\SceneManager.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LogicScene : BaseScene
+public class LoginScene : BaseScene
 {
     private Image img_logo = null;
     private CanvasGroup canvas_logo = null;

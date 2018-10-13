@@ -47,6 +47,6 @@ public class Main : MonoBehaviour
 
     void Init()
     {
-        SceneManager.Instance.LoadScene(SceneName.logic);
+        SceneManager.Instance.LoadScene(SceneName.login);
     }
 }
